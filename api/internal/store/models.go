@@ -13,10 +13,10 @@ type Park struct {
 }
 
 type Visit struct {
-	ID        int       `json"id"`
-	ParkID    int       `json"park_id"`
+	ID        int       `json:"id"`
+	ParkID    int       `json:"park_id"`
 	VisitDate time.Time `json:"visit_date"`
-	Rating    *int      `json"rating,omitempty"`
+	Rating    *int      `json:"rating,omitempty"`
 	Notes     *string   `json:"notes,omitempty"`
-	CreatedAt time.Time `json:"created_at:"`
+	CreatedAt time.Time `json:"created_at"`
 }

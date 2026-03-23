@@ -29,6 +29,8 @@ func main() {
 
 	h := handler.New(store)
 	r.Get("/api/parks", h.GetParks)
+	r.Get("/api/visits", h.GetVisits)
+	r.Post("/api/visits", h.CreateVisit)
 
 	log.Println("Starting server on :8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
