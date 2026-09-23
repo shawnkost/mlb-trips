@@ -10,7 +10,7 @@ const tabs = [
 ] as const;
 
 function isActive(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function TabNav() {
