@@ -15,4 +15,18 @@ npm run format     # or format:check
 npm run build
 ```
 
-The `api/` directory and `docker-compose.yml` are the legacy Go API and are being ported into this app.
+### Database
+
+Drizzle ORM against Postgres (Neon in production). Locally, use the compose Postgres:
+
+```bash
+cp .env.example .env.local   # DATABASE_URL (app, pooled) + DATABASE_URL_UNPOOLED (migrations)
+docker compose up -d db
+npm run db:migrate           # apply checked-in migrations in db/migrations
+npm run db:generate          # after editing db/schema.ts, generate a new migration
+npm run db:studio
+```
+
+Only checked-in migrations are applied to real databases; don't use `drizzle-kit push` outside a throwaway local database.
+
+The `api/` directory is the legacy Go API and is being ported into this app.
