@@ -17,5 +17,5 @@ When updating this file, preserve this bar for all agents and keep entries conci
 
 ## Project
 
-- Next.js app lives at the repo root; `api/` is the legacy Go API pending port/retirement — don't extend it. `docker-compose.yml` now only provides the local dev Postgres (see README).
+- Single Next.js app at the repo root with no separate backend; DB schema and migrations live in `db/` (Drizzle). `docker-compose.yml` only provides the local dev Postgres (see README).
 - Validate with `npm run lint && npm run typecheck && npm run format:check && npm run build` (scripts in `package.json`).

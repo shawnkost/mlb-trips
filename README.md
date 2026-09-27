@@ -28,5 +28,3 @@ npm run db:studio
 ```
 
 Only checked-in migrations are applied to real databases; don't use `drizzle-kit push` outside a throwaway local database.
-
-The `api/` directory is the legacy Go API and is being ported into this app.
