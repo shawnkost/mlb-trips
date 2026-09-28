@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   date,
   integer,
@@ -12,6 +13,7 @@ import {
 export const parks = pgTable("parks", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
   team: text("team").notNull(),
   city: text("city").notNull(),
   state: text("state").notNull(),
@@ -25,6 +27,7 @@ export const parks = pgTable("parks", {
     scale: 6,
     mode: "number",
   }).notNull(),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
 export const visits = pgTable(
