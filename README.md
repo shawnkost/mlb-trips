@@ -28,3 +28,5 @@ npm run db:studio
 ```
 
 Only checked-in migrations are applied to real databases; don't use `drizzle-kit push` outside a throwaway local database.
+
+Vercel production deploys apply checked-in migrations automatically before building (see `vercel.json`). Preview deploys skip migrations because they share the production database until Neon preview branching is enabled.
