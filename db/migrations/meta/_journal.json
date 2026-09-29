@@ -36,6 +36,13 @@
       "when": 1790640636021,
       "tag": "0004_visits_user_id",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790641380334,
+      "tag": "0005_visits_optional_date",
+      "breakpoints": true
     }
   ]
 }
