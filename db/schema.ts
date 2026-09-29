@@ -48,3 +48,5 @@ export const visits = pgTable(
     check("visits_rating_check", sql`${table.rating} BETWEEN 1 AND 5`),
   ],
 );
+
+export * from "./auth-schema";
