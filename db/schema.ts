@@ -10,6 +10,8 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
+import { user } from "./auth-schema";
+
 export const parks = pgTable("parks", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: text("name").notNull(),
@@ -34,6 +36,9 @@ export const visits = pgTable(
   "visits",
   {
     id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     parkId: integer("park_id")
       .notNull()
       .references(() => parks.id),
