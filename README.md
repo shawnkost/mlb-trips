@@ -20,7 +20,7 @@ npm run build
 Drizzle ORM against Postgres (Neon in production). Locally, use the compose Postgres:
 
 ```bash
-cp .env.example .env.local   # DATABASE_URL (app, pooled) + DATABASE_URL_UNPOOLED (migrations)
+cp .env.example .env.local   # then fill in the auth secrets and API keys
 docker compose up -d db
 npm run db:migrate           # apply checked-in migrations in db/migrations
 npm run db:generate          # after editing db/schema.ts, generate a new migration
