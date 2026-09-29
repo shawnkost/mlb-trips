@@ -6,6 +6,7 @@ import {
   integer,
   numeric,
   pgTable,
+  smallint,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
@@ -42,7 +43,8 @@ export const visits = pgTable(
     parkId: integer("park_id")
       .notNull()
       .references(() => parks.id),
-    visitDate: date("visit_date").notNull(),
+    visitDate: date("visit_date"),
+    visitYear: smallint("visit_year"),
     rating: integer("rating"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -51,6 +53,10 @@ export const visits = pgTable(
   },
   (table) => [
     check("visits_rating_check", sql`${table.rating} BETWEEN 1 AND 5`),
+    check(
+      "visits_visit_year_matches_date_check",
+      sql`${table.visitDate} IS NULL OR ${table.visitYear} IS NULL OR EXTRACT(YEAR FROM ${table.visitDate}) = ${table.visitYear}`,
+    ),
   ],
 );
 
