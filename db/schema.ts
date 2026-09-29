@@ -66,4 +66,37 @@ export const visits = pgTable(
   ],
 );
 
+export const visitPhotos = pgTable(
+  "visit_photos",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    visitId: integer("visit_id")
+      .notNull()
+      .references(() => visits.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    objectKey: text("object_key").notNull().unique(),
+    contentType: text("content_type").notNull(),
+    byteSize: integer("byte_size").notNull(),
+    width: integer("width"),
+    height: integer("height"),
+    caption: text("caption"),
+    status: text("status", { enum: ["pending", "ready"] })
+      .notNull()
+      .default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("visit_photos_visit_id_idx").on(table.visitId),
+    index("visit_photos_user_id_idx").on(table.userId),
+    check(
+      "visit_photos_status_check",
+      sql`${table.status} IN ('pending', 'ready')`,
+    ),
+  ],
+);
+
 export * from "./auth-schema";
