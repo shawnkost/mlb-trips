@@ -3,6 +3,7 @@ import {
   boolean,
   check,
   date,
+  index,
   integer,
   numeric,
   pgTable,
@@ -52,6 +53,11 @@ export const visits = pgTable(
       .defaultNow(),
   },
   (table) => [
+    index("visits_user_id_park_id_idx").on(table.userId, table.parkId),
+    index("visits_user_id_visit_date_idx").on(
+      table.userId,
+      table.visitDate.desc().nullsFirst(),
+    ),
     check("visits_rating_check", sql`${table.rating} BETWEEN 1 AND 5`),
     check(
       "visits_visit_year_matches_date_check",
