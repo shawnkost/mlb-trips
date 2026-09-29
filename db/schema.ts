@@ -73,9 +73,6 @@ export const visitPhotos = pgTable(
     visitId: integer("visit_id")
       .notNull()
       .references(() => visits.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
     objectKey: text("object_key").notNull().unique(),
     contentType: text("content_type").notNull(),
     byteSize: integer("byte_size").notNull(),
@@ -91,7 +88,6 @@ export const visitPhotos = pgTable(
   },
   (table) => [
     index("visit_photos_visit_id_idx").on(table.visitId),
-    index("visit_photos_user_id_idx").on(table.userId),
     check(
       "visit_photos_status_check",
       sql`${table.status} IN ('pending', 'ready')`,

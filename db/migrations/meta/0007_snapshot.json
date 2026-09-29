@@ -1,5 +1,5 @@
 {
-  "id": "d068dd1a-918f-4a8b-b7f5-54240de2ca81",
+  "id": "5dc3163d-8ae5-4f19-8c29-bec54bdf77f2",
   "prevId": "70c12a5e-26e5-4804-8030-5b612f38b534",
   "version": "7",
   "dialect": "postgresql",
@@ -116,12 +116,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "object_key": {
           "name": "object_key",
           "type": "text",
@@ -188,21 +182,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "visit_photos_user_id_idx": {
-          "name": "visit_photos_user_id_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -211,15 +190,6 @@
           "tableFrom": "visit_photos",
           "tableTo": "visits",
           "columnsFrom": ["visit_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "visit_photos_user_id_user_id_fk": {
-          "name": "visit_photos_user_id_user_id_fk",
-          "tableFrom": "visit_photos",
-          "tableTo": "user",
-          "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
