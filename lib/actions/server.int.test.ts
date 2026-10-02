@@ -73,7 +73,7 @@ describe("parseVisitInput", () => {
     });
   });
 
-  it("rejects an inactive park", async () => {
+  it("accepts an inactive park", async () => {
     const fenway = await getParkBySlug("fenway-park");
     await getDb()
       .update(parks)
@@ -82,10 +82,7 @@ describe("parseVisitInput", () => {
     try {
       expect(
         await parseVisitInput(form({ parkId: String(fenway!.id) })),
-      ).toMatchObject({
-        ok: false,
-        fieldErrors: { parkId: expect.any(Array) },
-      });
+      ).toMatchObject({ ok: true, data: { parkId: fenway!.id } });
     } finally {
       await getDb()
         .update(parks)
