@@ -44,6 +44,7 @@ export async function getParkBySlug(slug: string): Promise<ParkDTO | null> {
   return park ?? null;
 }
 
+// Includes inactive (retired) parks: visits can be historical.
 export async function getParkById(id: number): Promise<ParkDTO | null> {
   const [park] = await getDb()
     .select(parkColumns)
