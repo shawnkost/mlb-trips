@@ -43,3 +43,12 @@ export async function getParkBySlug(slug: string): Promise<ParkDTO | null> {
     .limit(1);
   return park ?? null;
 }
+
+export async function getParkById(id: number): Promise<ParkDTO | null> {
+  const [park] = await getDb()
+    .select(parkColumns)
+    .from(parks)
+    .where(and(eq(parks.id, id), eq(parks.isActive, true)))
+    .limit(1);
+  return park ?? null;
+}

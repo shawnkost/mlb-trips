@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getParkBySlug, listActiveParks } from "./parks";
+import { getParkById, getParkBySlug, listActiveParks } from "./parks";
 
 describe("park catalog", () => {
   it("lists the seeded active parks", async () => {
@@ -13,5 +13,11 @@ describe("park catalog", () => {
     const park = await getParkBySlug("fenway-park");
     expect(park).toMatchObject({ name: "Fenway Park", team: "Boston Red Sox" });
     expect(await getParkBySlug("not-a-park")).toBeNull();
+  });
+
+  it("looks up an active park by id", async () => {
+    const fenway = await getParkBySlug("fenway-park");
+    expect(await getParkById(fenway!.id)).toEqual(fenway);
+    expect(await getParkById(999_999)).toBeNull();
   });
 });
