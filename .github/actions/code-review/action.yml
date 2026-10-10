@@ -9,7 +9,7 @@ inputs:
     description: Anthropic model
     default: claude-opus-5-5
   ocr_version:
-    description: '@alibaba-group/open-code-review npm version'
+    description: "@alibaba-group/open-code-review npm version"
     default: 1.12.13
   base_ref:
     description: Base branch to diff against
