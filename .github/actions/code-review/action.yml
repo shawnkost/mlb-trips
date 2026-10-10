@@ -1,0 +1,87 @@
+name: Code review
+description: Review the pull request diff with Open Code Review and post the findings to the PR.
+
+inputs:
+  anthropic_api_key:
+    required: true
+  model:
+    default: claude-opus-5-5
+  ocr_version:
+    default: 1.12.13
+  base_ref:
+    default: ${{ github.event.pull_request.base.ref }}
+  head_sha:
+    default: ${{ github.event.pull_request.head.sha }}
+  pr_number:
+    default: ${{ github.event.pull_request.number }}
+
+runs:
+  using: composite
+  steps:
+    - id: ocr
+      shell: bash
+      continue-on-error: true
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic_api_key }}
+        OCR_VERSION: ${{ inputs.ocr_version }}
+        OCR_MODEL: ${{ inputs.model }}
+        BASE_REF: ${{ inputs.base_ref }}
+        HEAD_SHA: ${{ inputs.head_sha }}
+      run: |
+        npm install -g --no-audit --no-fund "@alibaba-group/open-code-review@$OCR_VERSION"
+        ocr config set provider anthropic
+        ocr config set model "$OCR_MODEL"
+        ocr review --from "origin/$BASE_REF" --to "$HEAD_SHA" --format json --audience agent > "$RUNNER_TEMP/ocr-result.json"
+    - if: ${{ !cancelled() }}
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      continue-on-error: true
+      env:
+        OCR_OUTCOME: ${{ steps.ocr.outcome }}
+        PR_NUMBER: ${{ inputs.pr_number }}
+        HEAD_SHA: ${{ inputs.head_sha }}
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const pull_number = Number(process.env.PR_NUMBER);
+          const run = `[workflow run](${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId})`;
+          const comment = (body) => github.rest.issues.createComment({ owner, repo, issue_number: pull_number, body });
+          let result;
+          try {
+            result = JSON.parse(require('fs').readFileSync(`${process.env.RUNNER_TEMP}/ocr-result.json`, 'utf8'));
+          } catch {}
+          if (process.env.OCR_OUTCOME !== 'success' || !Array.isArray(result?.comments)) {
+            await comment(`The code review could not be completed; see the ${run}.`);
+            return;
+          }
+          const s = result.summary || {};
+          const header = `Code review (${result.llm?.model}): ${s.files_reviewed ?? 0} file(s) reviewed, ${result.comments.length} finding(s). Advisory only; ${run}.`;
+          if (result.comments.length === 0) {
+            await comment(`${header}\n\nNo issues found.`);
+            return;
+          }
+          const toInline = (c) => {
+            const start = c.start_line || c.end_line;
+            const line = c.end_line || c.start_line;
+            const lines = (c.existing_code || '').replace(/\n$/, '').split('\n').length;
+            const suggest = c.suggestion_code && c.existing_code && lines === line - start + 1;
+            const body = suggest ? `${c.content}\n\n\`\`\`suggestion\n${c.suggestion_code.replace(/\n$/, '')}\n\`\`\`` : c.content;
+            return { path: c.path, line, side: 'RIGHT', body, ...(start < line && { start_line: start, start_side: 'RIGHT' }) };
+          };
+          const located = result.comments.filter((c) => c.path && (c.start_line || c.end_line));
+          const leftover = result.comments.filter((c) => !located.includes(c));
+          const review = { owner, repo, pull_number, commit_id: process.env.HEAD_SHA, event: 'COMMENT' };
+          const summary = () =>
+            [header, ...leftover.map((c) => `- \`${c.path}${c.start_line ? `:${c.start_line}` : ''}\` ${c.content}`)].join('\n');
+          try {
+            await github.rest.pulls.createReview({ ...review, body: summary(), comments: located.map(toInline) });
+          } catch (error) {
+            core.warning(`Batch review failed: ${error.message}`);
+            for (const c of located) {
+              try {
+                await github.rest.pulls.createReviewComment({ owner, repo, pull_number, commit_id: review.commit_id, ...toInline(c) });
+              } catch {
+                leftover.push(c);
+              }
+            }
+            await comment(summary());
+          }
