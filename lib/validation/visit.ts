@@ -15,15 +15,17 @@ const blankToUndefined = (value: unknown) =>
 const optional = <S extends z.ZodType>(schema: S) =>
   z.preprocess(blankToUndefined, schema.optional());
 
+export const parkIdSchema = z.preprocess(
+  blankToUndefined,
+  z.coerce
+    .number({ error: "Choose a ballpark." })
+    .int({ error: "Choose a ballpark." })
+    .positive({ error: "Choose a ballpark." }),
+);
+
 export const visitInputSchema = z
   .object({
-    parkId: z.preprocess(
-      blankToUndefined,
-      z.coerce
-        .number({ error: "Choose a ballpark." })
-        .int({ error: "Choose a ballpark." })
-        .positive({ error: "Choose a ballpark." }),
-    ),
+    parkId: parkIdSchema,
     visitDate: optional(
       z.iso
         .date({ error: "Enter a valid date." })
