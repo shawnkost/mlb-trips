@@ -3,32 +3,43 @@ description: Review the pull request diff with Open Code Review and post the fin
 
 inputs:
   anthropic_api_key:
+    description: Anthropic API key
     required: true
   model:
+    description: Anthropic model
     default: claude-opus-5-5
   ocr_version:
+    description: '@alibaba-group/open-code-review npm version'
     default: 1.12.13
   base_ref:
+    description: Base branch to diff against
     default: ${{ github.event.pull_request.base.ref }}
   head_sha:
+    description: Pull request head commit
     default: ${{ github.event.pull_request.head.sha }}
   pr_number:
+    description: Pull request number
     default: ${{ github.event.pull_request.number }}
 
 runs:
   using: composite
   steps:
+    - id: install
+      shell: bash
+      continue-on-error: true
+      env:
+        OCR_VERSION: ${{ inputs.ocr_version }}
+      run: npm install -g --no-audit --no-fund "@alibaba-group/open-code-review@$OCR_VERSION"
     - id: ocr
+      if: steps.install.outcome == 'success'
       shell: bash
       continue-on-error: true
       env:
         ANTHROPIC_API_KEY: ${{ inputs.anthropic_api_key }}
-        OCR_VERSION: ${{ inputs.ocr_version }}
         OCR_MODEL: ${{ inputs.model }}
         BASE_REF: ${{ inputs.base_ref }}
         HEAD_SHA: ${{ inputs.head_sha }}
       run: |
-        npm install -g --no-audit --no-fund "@alibaba-group/open-code-review@$OCR_VERSION"
         ocr config set provider anthropic
         ocr config set model "$OCR_MODEL"
         ocr review --from "origin/$BASE_REF" --to "$HEAD_SHA" --format json --audience agent > "$RUNNER_TEMP/ocr-result.json"
