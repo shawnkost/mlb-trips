@@ -19,6 +19,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Install Open Code Review runtime dependencies
+        continue-on-error: true
+        run: npm install --prefix "$HOME" --no-audit --no-fund web-tree-sitter@0.24.7 tree-sitter-wasms@0.1.13
       - name: Configure AI provider
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -29,7 +32,8 @@ jobs:
           fi
           mkdir -p "$HOME/.ocr"
           printf 'ai:\n  remote:\n    provider: anthropic\n    model: claude-haiku-5-5\n    apiKey: "%s"\n' "$ANTHROPIC_API_KEY" > "$HOME/.ocr/config.yml"
-      - uses: raye-deng/open-code-review@v1
+      - name: Open Code Review
+        uses: raye-deng/open-code-review@v1
         continue-on-error: true
         with:
           sla: L3
