@@ -42,3 +42,7 @@ npm run test:integration    # integration tests (*.int.test.ts) against real Pos
 ```
 
 Integration tests use `TEST_DATABASE_URL` (default `postgres://mlb:mlb@localhost:5432/mlb_trips_test`, created if missing) and refuse any database whose name doesn't end in `_test`. Each run drops and re-migrates that database, and every test starts with all tables except `parks` truncated. Better Auth emails are captured in memory by `test/mail-sink.ts` instead of going to Resend, and `createVerifiedUser()` in `test/auth.ts` signs up, verifies, and signs in a user through the real auth API. CI runs both against a `postgres:16` service container.
+
+### Code review
+
+`.github/workflows/code-review.yml` runs [Open Code Review](https://github.com/marketplace/actions/open-code-review) at `L3` on every pull request and posts its score as a PR comment. It is advisory and never fails the PR. The LLM stage uses Anthropic and needs the `ANTHROPIC_API_KEY` repository secret; without it the review still runs the structural and embedding stages.

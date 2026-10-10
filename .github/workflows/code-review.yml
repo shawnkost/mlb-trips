@@ -1,0 +1,38 @@
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: code-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Configure AI provider
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::warning::ANTHROPIC_API_KEY is not set; L3 review runs without the LLM stage."
+            exit 0
+          fi
+          mkdir -p "$HOME/.ocr"
+          printf 'ai:\n  remote:\n    provider: anthropic\n    model: claude-haiku-5-5\n    apiKey: "%s"\n' "$ANTHROPIC_API_KEY" > "$HOME/.ocr/config.yml"
+      - uses: raye-deng/open-code-review@v1
+        continue-on-error: true
+        with:
+          sla: L3
+          threshold: 70
+          fail-on-low-score: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
