@@ -168,8 +168,11 @@ jobs:
                 continue;
               }
               let body = c.content || '';
-              if (c.suggestion_code && c.existing_code) {
-                body += `\n\n${fence(c.suggestion_code, 'suggestion')}`;
+              if (c.suggestion_code) {
+                const existingLines = String(c.existing_code || '').replace(/\n$/, '').split('\n').length;
+                body += c.existing_code && existingLines === end - start + 1
+                  ? `\n\n${fence(c.suggestion_code, 'suggestion')}`
+                  : `\n\nSuggested:\n\n${fence(c.suggestion_code)}`;
               }
               const comment = { path: c.path, line: end, side: 'RIGHT', body: clip(body) };
               if (multi) Object.assign(comment, { start_line: start, start_side: 'RIGHT' });
