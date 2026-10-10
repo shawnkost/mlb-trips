@@ -45,4 +45,4 @@ Integration tests use `TEST_DATABASE_URL` (default `postgres://mlb:mlb@localhost
 
 ### Code review
 
-`.github/workflows/code-review.yml` runs [Open Code Review](https://github.com/marketplace/actions/open-code-review) at `L3` on every pull request and posts its score as a PR comment. It is advisory and never fails the PR. The LLM stage uses Anthropic and needs the `ANTHROPIC_API_KEY` repository secret; without it the review still runs the structural and embedding stages.
+`.github/workflows/code-review.yml` runs [Open Code Review](https://github.com/marketplace/actions/open-code-review) at `L3` once when a pull request is opened and posts its score as a PR comment. To review the PR's current head again, add the `code-review` label (remove and re-add it for later runs); GitHub's "Re-run jobs" replays the original commit instead. It is advisory and never fails the PR. The LLM stage uses Anthropic and needs the `ANTHROPIC_API_KEY` repository secret; without it the review still runs the structural and embedding stages.
