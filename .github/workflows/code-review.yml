@@ -18,11 +18,12 @@ env:
 
 jobs:
   review:
-    if: (github.event.action == 'opened' && !github.event.pull_request.draft) || (github.event.action == 'labeled' && github.event.label.name == 'code-review')
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.event.action == 'opened' || github.event.label.name == 'code-review')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        id: checkout
         continue-on-error: true
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -31,7 +32,9 @@ jobs:
 
       - name: Run Open Code Review
         id: ocr
+        if: steps.checkout.outcome == 'success'
         continue-on-error: true
+        timeout-minutes: 45
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
@@ -62,11 +65,12 @@ jobs:
           jq -c '{status, llm, summary, comments: (.comments | length), warnings}' "$RUNNER_TEMP/ocr-result.json" || true
 
       - name: Post review
-        if: always()
+        if: ${{ !cancelled() }}
         continue-on-error: true
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           OCR_EXIT_CODE: ${{ steps.ocr.outputs.exit_code }}
+          CHECKOUT_OUTCOME: ${{ steps.checkout.outcome }}
         with:
           script: |
             const fs = require('fs');
@@ -108,7 +112,9 @@ jobs:
             }
             if (process.env.OCR_EXIT_CODE !== '0' || !result || !Array.isArray(result.comments)) {
               const stderr = readFile('ocr-stderr.log').trim().split('\n').pop() || '';
-              const reason = stderr.includes('ANTHROPIC_API_KEY is not set')
+              const reason = process.env.CHECKOUT_OUTCOME !== 'success'
+                ? 'the pull request head could not be checked out.'
+                : stderr.includes('ANTHROPIC_API_KEY is not set')
                 ? 'the `ANTHROPIC_API_KEY` repository secret is not available to this run.'
                 : process.env.OCR_EXIT_CODE !== '0'
                   ? `\`ocr review\` exited with code ${process.env.OCR_EXIT_CODE || 'unknown'}.`
