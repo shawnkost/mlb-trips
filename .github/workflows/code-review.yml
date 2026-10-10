@@ -8,36 +8,21 @@ permissions:
   contents: read
   pull-requests: write
 
-concurrency:
-  group: code-review-${{ github.event.pull_request.number }}${{ github.event.action == 'labeled' && github.event.label.name != 'code-review' && format('-skip-{0}', github.run_id) || '' }}
-  cancel-in-progress: true
-
 jobs:
   review:
-    if: github.event.action == 'opened' || github.event.label.name == 'code-review'
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.event.action == 'opened' || github.event.label.name == 'code-review')
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: code-review-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-      - name: Install Open Code Review runtime dependencies
-        continue-on-error: true
-        run: npm install --prefix "$HOME" --no-audit --no-fund web-tree-sitter@0.24.7 tree-sitter-wasms@0.1.13
-      - name: Configure AI provider
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::warning::ANTHROPIC_API_KEY is not set; L3 review runs without the LLM stage."
-            exit 0
-          fi
-          mkdir -p "$HOME/.ocr"
-          printf 'ai:\n  remote:\n    provider: anthropic\n    model: claude-opus-5-5\n    apiKey: "%s"\n' "$ANTHROPIC_API_KEY" > "$HOME/.ocr/config.yml"
-      - name: Open Code Review
-        uses: raye-deng/open-code-review@v1
+          persist-credentials: false
+      - uses: ./.github/actions/code-review
         continue-on-error: true
         with:
-          sla: L3
-          threshold: 70
-          fail-on-low-score: false
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
