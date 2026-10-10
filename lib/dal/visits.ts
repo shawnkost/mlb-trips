@@ -80,3 +80,63 @@ export async function getMyVisit(id: number): Promise<VisitDTO | null> {
     .limit(1);
   return visit ?? null;
 }
+
+export type VisitWrite = {
+  parkId: number;
+  visitDate: string | null;
+  visitYear: number | null;
+  rating: number | null;
+  notes: string | null;
+};
+
+export async function createMyVisit(input: VisitWrite): Promise<number> {
+  const user = await requireUser();
+  const [{ id }] = await getDb()
+    .insert(visits)
+    .values({ ...input, userId: user.id })
+    .returning({ id: visits.id });
+  return id;
+}
+
+export async function updateMyVisit(
+  id: number,
+  input: VisitWrite,
+): Promise<boolean> {
+  const user = await requireUser();
+  if (!Number.isInteger(id) || id < 1 || id > MAX_ID) return false;
+  const updated = await getDb()
+    .update(visits)
+    .set(input)
+    .where(and(eq(visits.id, id), eq(visits.userId, user.id)))
+    .returning({ id: visits.id });
+  return updated.length > 0;
+}
+
+export async function deleteMyVisit(id: number): Promise<boolean> {
+  const user = await requireUser();
+  if (!Number.isInteger(id) || id < 1 || id > MAX_ID) return false;
+  const deleted = await getDb()
+    .delete(visits)
+    .where(and(eq(visits.id, id), eq(visits.userId, user.id)))
+    .returning({ id: visits.id });
+  return deleted.length > 0;
+}
+
+export async function markMyParkVisited(
+  parkId: number,
+): Promise<{ created: boolean }> {
+  const user = await requireUser();
+  return getDb().transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`visits:${user.id}:${parkId}`}, 0))`,
+    );
+    const [existing] = await tx
+      .select({ id: visits.id })
+      .from(visits)
+      .where(and(eq(visits.userId, user.id), eq(visits.parkId, parkId)))
+      .limit(1);
+    if (existing) return { created: false };
+    await tx.insert(visits).values({ userId: user.id, parkId });
+    return { created: true };
+  });
+}
