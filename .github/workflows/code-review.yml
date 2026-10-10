@@ -30,9 +30,18 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Install Open Code Review
+        id: install
+        if: steps.checkout.outcome == 'success'
+        continue-on-error: true
+        run: |
+          npm install -g --no-audit --no-fund "@alibaba-group/open-code-review@$OCR_VERSION"
+          ocr config set provider anthropic
+          ocr config set model "$OCR_MODEL"
+
       - name: Run Open Code Review
         id: ocr
-        if: steps.checkout.outcome == 'success'
+        if: steps.install.outcome == 'success'
         continue-on-error: true
         timeout-minutes: 45
         env:
@@ -41,14 +50,10 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          echo "exit_code=1" >> "$GITHUB_OUTPUT"
           if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "ANTHROPIC_API_KEY is not set" > "$RUNNER_TEMP/ocr-stderr.log"
+            echo "missing_key=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          npm install -g --no-audit --no-fund "@alibaba-group/open-code-review@$OCR_VERSION"
-          ocr config set provider anthropic
-          ocr config set model "$OCR_MODEL"
           set +e
           ocr review \
             --from "origin/$BASE_REF" \
@@ -70,7 +75,9 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           OCR_EXIT_CODE: ${{ steps.ocr.outputs.exit_code }}
+          OCR_MISSING_KEY: ${{ steps.ocr.outputs.missing_key }}
           CHECKOUT_OUTCOME: ${{ steps.checkout.outcome }}
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
         with:
           script: |
             const fs = require('fs');
@@ -111,14 +118,14 @@ jobs:
               result = null;
             }
             if (process.env.OCR_EXIT_CODE !== '0' || !result || !Array.isArray(result.comments)) {
-              const stderr = readFile('ocr-stderr.log').trim().split('\n').pop() || '';
-              const reason = process.env.CHECKOUT_OUTCOME !== 'success'
-                ? 'the pull request head could not be checked out.'
-                : stderr.includes('ANTHROPIC_API_KEY is not set')
-                ? 'the `ANTHROPIC_API_KEY` repository secret is not available to this run.'
-                : process.env.OCR_EXIT_CODE !== '0'
-                  ? `\`ocr review\` exited with code ${process.env.OCR_EXIT_CODE || 'unknown'}.`
-                  : 'its output could not be parsed.';
+              const env = process.env;
+              const reason =
+                env.CHECKOUT_OUTCOME !== 'success' ? 'the pull request head could not be checked out.'
+                : env.INSTALL_OUTCOME !== 'success' ? `\`ocr\` ${env.OCR_VERSION} could not be installed or configured.`
+                : env.OCR_MISSING_KEY === 'true' ? 'the `ANTHROPIC_API_KEY` repository secret is not available to this run.'
+                : !env.OCR_EXIT_CODE ? '`ocr review` did not finish (it timed out or was interrupted).'
+                : env.OCR_EXIT_CODE !== '0' ? `\`ocr review\` exited with code ${env.OCR_EXIT_CODE}.`
+                : 'its output could not be parsed.';
               await fail(reason);
               return;
             }
@@ -156,11 +163,15 @@ jobs:
                 continue;
               }
               const multi = start < end && lines.get(start) === hunk;
+              if (start < end && !multi && c.suggestion_code) {
+                general.push(c);
+                continue;
+              }
               let body = c.content || '';
-              if (c.suggestion_code && c.existing_code && (multi || start === end)) {
+              if (c.suggestion_code && c.existing_code) {
                 body += `\n\n${fence(c.suggestion_code, 'suggestion')}`;
               }
-              const comment = { path: c.path, line: end, side: 'RIGHT', body };
+              const comment = { path: c.path, line: end, side: 'RIGHT', body: clip(body) };
               if (multi) Object.assign(comment, { start_line: start, start_side: 'RIGHT' });
               inline.push(comment);
             }
